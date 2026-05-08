@@ -91,7 +91,7 @@
             }
         }
 
-          // 上传新内容到 note.txt
+        // 上传新内容到 note.txt
         async function uploadNote() {
             const token = document.getElementById('token-input').value.trim();
             const content = document.getElementById('new-content').value;
@@ -105,22 +105,18 @@
             showStatus('上传中...', 'loading');
 
             try {
-                // 1. 强制重新获取最新 SHA（解决缓存问题）
+                // 1. 获取最新 SHA（只用时间戳防缓存，不加 Cache-Control 头）
                 const getUrl = `https://api.github.com/repos/${CONFIG.owner}/${CONFIG.repo}/contents/${CONFIG.path}?ref=${CONFIG.branch}&t=${Date.now()}`;
                 const getRes = await fetch(getUrl, {
-                    headers: { 
-                        'Authorization': `token ${token}`,
-                        'Cache-Control': 'no-cache'
-                    }
+                    headers: { 'Authorization': `token ${token}` }
                 });
                 
                 let sha = '';
                 if (getRes.status === 200) {
                     const fileInfo = await getRes.json();
                     sha = fileInfo.sha;
-                    console.log('获取到新 SHA:', sha); // 调试用
                 } else if (getRes.status === 404) {
-                    sha = ''; // 新文件
+                    sha = '';
                 } else {
                     throw new Error(`获取文件信息失败: ${getRes.status}`);
                 }
@@ -154,10 +150,6 @@
 
             } catch (err) {
                 showStatus('❌ 失败：' + err.message, 'error');
-                // 如果是 SHA 错误，提示刷新
-                if (err.message.includes('does not match')) {
-                    showStatus('❌ 文件已被修改，请刷新页面重试', 'error');
-                }
             } finally {
                 btn.disabled = false;
             }
