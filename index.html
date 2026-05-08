@@ -1,0 +1,176 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>族谱笔记</title>
+    <style>
+        body { font-family: 'Microsoft YaHei', sans-serif; max-width: 800px; margin: 50px auto; padding: 20px; }
+        h1 { color: #333; border-bottom: 2px solid #4CAF50; padding-bottom: 10px; }
+        .section { margin: 30px 0; padding: 20px; border: 1px solid #ddd; border-radius: 8px; }
+        label { display: block; margin-bottom: 8px; font-weight: bold; color: #555; }
+        #note-display { 
+            width: 100%; min-height: 100px; padding: 15px; 
+            background: #f5f5f5; border: 1px solid #ccc; 
+            border-radius: 4px; white-space: pre-wrap; 
+        }
+        input[type="text"] { 
+            width: 100%; padding: 12px; font-size: 16px; 
+            border: 2px solid #ddd; border-radius: 4px; 
+            box-sizing: border-box; 
+        }
+        button { 
+            margin-top: 15px; padding: 12px 30px; 
+            background: #4CAF50; color: white; 
+            border: none; border-radius: 4px; 
+            font-size: 16px; cursor: pointer; 
+        }
+        button:hover { background: #45a049; }
+        button:disabled { background: #ccc; cursor: not-allowed; }
+        #status { margin-top: 15px; padding: 10px; border-radius: 4px; display: none; }
+        .success { background: #d4edda; color: #155724; }
+        .error { background: #f8d7da; color: #721c24; }
+        .loading { background: #fff3cd; color: #856404; }
+        .token-section { 
+            background: #fff3cd; border: 2px solid #ffc107; 
+        }
+        .warning { color: #856404; font-size: 14px; margin-top: 10px; }
+    </style>
+</head>
+<body>
+    <h1>📜 族谱笔记</h1>
+
+    <!-- 读取显示区 -->
+    <div class="section">
+        <label>当前 note.txt 内容：</label>
+        <div id="note-display">加载中...</div>
+        <button onclick="loadNote()">🔄 刷新</button>
+    </div>
+
+    <!-- 写入区 -->
+    <div class="section token-section">
+        <label>🔑 GitHub Token（需要 repo 权限）：</label>
+        <input type="password" id="token-input" placeholder="ghp_xxxxxxxxxxxx">
+        <p class="warning">⚠️ Token 仅保存在浏览器本地，不会上传到服务器</p>
+        
+        <label style="margin-top: 15px;">📝 新内容：</label>
+        <input type="text" id="new-content" placeholder="输入要写入的内容...">
+        
+        <button onclick="uploadNote()">⬆️ 上传到 note.txt</button>
+        <div id="status"></div>
+    </div>
+
+    <script>
+        // 配置
+        const CONFIG = {
+            owner: 'gitWyyl',           // 你的 GitHub 用户名
+            repo: 'zupu001',            // 仓库名
+            path: 'JS/note.txt',        // 文件路径
+            branch: 'main'              // 分支
+        };
+
+        // 页面加载时自动读取
+        window.onload = loadNote;
+
+        // 读取 note.txt
+        async function loadNote() {
+            const display = document.getElementById('note-display');
+            display.textContent = '加载中...';
+            
+            try {
+                // 通过 GitHub raw 内容 API 读取（无需 Token）
+                const url = `https://raw.githubusercontent.com/${CONFIG.owner}/${CONFIG.repo}/${CONFIG.branch}/${CONFIG.path}`;
+                const response = await fetch(url, { cache: 'no-cache' });
+                
+                if (!response.ok) throw new Error(`HTTP ${response.status}`);
+                
+                const text = await response.text();
+                display.textContent = text || '(文件为空)';
+            } catch (err) {
+                display.textContent = '读取失败：' + err.message;
+            }
+        }
+
+        // 上传新内容到 note.txt
+        async function uploadNote() {
+            const token = document.getElementById('token-input').value.trim();
+            const content = document.getElementById('new-content').value;
+            const status = document.getElementById('status');
+            const btn = event.target;
+
+            // 验证
+            if (!token) {
+                showStatus('请输入 GitHub Token', 'error');
+                return;
+            }
+            if (!content) {
+                showStatus('请输入内容', 'error');
+                return;
+            }
+
+            btn.disabled = true;
+            showStatus('上传中...', 'loading');
+
+            try {
+                // 1. 先获取当前文件的 SHA（必须）
+                const getUrl = `https://api.github.com/repos/${CONFIG.owner}/${CONFIG.repo}/contents/${CONFIG.path}?ref=${CONFIG.branch}`;
+                const getRes = await fetch(getUrl, {
+                    headers: { 'Authorization': `token ${token}` }
+                });
+                
+                let sha = '';
+                if (getRes.status === 200) {
+                    const fileInfo = await getRes.json();
+                    sha = fileInfo.sha;
+                } else if (getRes.status === 404) {
+                    sha = ''; // 新文件
+                } else {
+                    throw new Error(`获取文件信息失败: ${getRes.status}`);
+                }
+
+                // 2. 上传新内容（Base64 编码）
+                const putUrl = `https://api.github.com/repos/${CONFIG.owner}/${CONFIG.repo}/contents/${CONFIG.path}`;
+                const body = {
+                    message: '更新 note.txt - ' + new Date().toLocaleString('zh-CN'),
+                    content: btoa(unescape(encodeURIComponent(content))), // UTF-8 转 Base64
+                    branch: CONFIG.branch
+                };
+                if (sha) body.sha = sha; // 更新时需要原文件 SHA
+
+                const putRes = await fetch(putUrl, {
+                    method: 'PUT',
+                    headers: {
+                        'Authorization': `token ${token}`,
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify(body)
+                });
+
+                if (!putRes.ok) {
+                    const err = await putRes.json();
+                    throw new Error(err.message || `HTTP ${putRes.status}`);
+                }
+
+                showStatus('✅ 上传成功！', 'success');
+                document.getElementById('new-content').value = '';
+                
+                // 延迟刷新显示
+                setTimeout(loadNote, 1000);
+                
+            } catch (err) {
+                showStatus('❌ 失败：' + err.message, 'error');
+            } finally {
+                btn.disabled = false;
+            }
+        }
+
+        // 显示状态消息
+        function showStatus(msg, type) {
+            const status = document.getElementById('status');
+            status.textContent = msg;
+            status.className = type;
+            status.style.display = 'block';
+        }
+    </script>
+</body>
+</html>
