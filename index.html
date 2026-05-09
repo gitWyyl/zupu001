@@ -75,17 +75,33 @@
         // 读取 note.txt        
         async function loadNote() {
             const display = document.getElementById('note-display');
+            const token = document.getElementById('token-input').value.trim();
             display.textContent = '加载中...';
             
             try {
-                // 通过 GitHub raw 内容 API 读取（无需 Token）
-                const url = `https://raw.githubusercontent.com/${CONFIG.owner}/${CONFIG.repo}/${CONFIG.branch}/${CONFIG.path}`;
-                const response = await fetch(url, { cache: 'no-cache' });
+                let text;
                 
-                if (!response.ok) throw new Error(`HTTP ${response.status}`);
+                if (token) {
+                    // 有 Token：用 API 实时读取
+                    const apiUrl = `https://api.github.com/repos/${CONFIG.owner}/${CONFIG.repo}/contents/${CONFIG.path}?ref=${CONFIG.branch}&t=${Date.now()}`;
+                    const res = await fetch(apiUrl, {
+                        headers: { 'Authorization': `token ${token}` }
+                    });
+                    if (res.ok) {
+                        const data = await res.json();
+                        text = decodeURIComponent(escape(atob(data.content)));
+                    }
+                }
                 
-                const text = await response.text();
+                // 无 Token 或 API 失败：用 raw
+                if (!text) {
+                    const rawUrl = `https://raw.githubusercontent.com/${CONFIG.owner}/${CONFIG.repo}/${CONFIG.branch}/${CONFIG.path}?_=${Date.now()}`;
+                    const res = await fetch(rawUrl, { cache: 'no-store' });
+                    text = await res.text();
+                }
+                
                 display.textContent = text || '(文件为空)';
+                
             } catch (err) {
                 display.textContent = '读取失败：' + err.message;
             }
