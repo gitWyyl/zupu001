@@ -69,3 +69,5 @@ button:disabled { background: #ccc; cursor: not-allowed; }
     width: 100%;
     max-width: 400px;      /* 最大宽度限制 */
 }
+
+/*  */
