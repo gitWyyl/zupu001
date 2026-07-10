@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>族谱笔记</title>
+    <link rel="stylesheet" type="text/css" href="style.css">
+</head>
+<body>
+    <h1>📜 族谱笔记</h1>
+
+    <!-- 读取显示区 -->
+    <div class="section">
+        <label>当前 note.txt 内容：</label>
+        <div id="note-display">加载中...</div>
+        <button onclick="loadNote()">🔄 刷新</button>
+    </div>
+
+    <!-- 写入区 -->
+    <div class="section token-section">
+        <label>🔑 GitHub Token（需要 repo 权限）：</label>
+        <input type="password" id="token-input" placeholder="ghp_xxxxxxxxxxxx">
+        <p class="warning">⚠️ Token 仅保存在浏览器本地，不会上传到服务器</p>
+        
+        <label style="margin-top: 15px;">📝 新内容：</label>
+        <input type="text" id="new-content" placeholder="输入要写入的内容...">
+        
+        <button onclick="uploadNote()">⬆️ 上传到 note.txt</button>
+        <div id="status"></div>
+    </div>
+
+    <script src="./script.js"> </script>   
+    
+</body>
+</html>
