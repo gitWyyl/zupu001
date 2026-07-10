@@ -2,7 +2,7 @@
 const CONFIG = {
     owner: 'gitWyyl',           // 你的 GitHub 用户名
     repo: 'zupu001',            // 仓库名
-    path: 'JS/note.txt',        // 文件路径
+    path: 'data/note.txt',        // 文件路径
     branch: 'main'              // 分支
 };
 
@@ -116,5 +116,3 @@ function showStatus(msg, type) {
     status.className = type;
     status.style.display = 'block';
 }
-
-////
