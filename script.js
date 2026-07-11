@@ -1,8 +1,8 @@
 // 配置
 const CONFIG = {
     owner: 'gitWyyl',           // 你的 GitHub 用户名
-    repo: 'zupu001',            // 仓库名
-    path: 'data/note.txt',        // 文件路径
+    repo: 'yyzupu',             // 仓库名
+    path: 'data/note.txt',      // 文件路径
     branch: 'main'              // 分支
 };
 
